@@ -6,11 +6,35 @@ class Currency {
 }
 
 class CurrencyConverter {
-    constructor() {}
+    constructor(apiUrl) {
+        this.apiUrl = apiUrl;
+        this.currencies = [];
+    }
 
-    getCurrencies(apiUrl) {}
+    async getCurrencies() {
+        try {
+            const response = await fetch(`${this.apiUrl}/currencies`);
+            const data = await response.json();
+            this.currencies = Object.entries(data).map(([code, name]) => new Currency(code, name));
+        } catch (error) {
+            console.error("Error fetching currencies:", error);
+        }
+    }
 
-    convertCurrency(amount, fromCurrency, toCurrency) {}
+    async convertCurrency(amount, fromCurrency, toCurrency) {
+        if (fromCurrency.code === toCurrency.code) {
+            return amount;
+        }
+
+        try {
+            const response = await fetch(`${this.apiUrl}/latest?amount=${amount}&from=${fromCurrency.code}&to=${toCurrency.code}`);
+            const data = await response.json();
+            return data.rates[toCurrency.code];
+        } catch (error) {
+            console.error("Error converting currency:", error);
+            return null;
+        }
+    }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -28,7 +52,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
-        const amount = document.getElementById("amount").value;
+        const amount = parseFloat(document.getElementById("amount").value);
         const fromCurrency = converter.currencies.find(
             (currency) => currency.code === fromCurrencySelect.value
         );
@@ -43,9 +67,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
         if (convertedAmount !== null && !isNaN(convertedAmount)) {
-            resultDiv.textContent = `${amount} ${
-                fromCurrency.code
-            } son ${convertedAmount.toFixed(2)} ${toCurrency.code}`;
+            resultDiv.textContent = `${amount} ${fromCurrency.code} son ${convertedAmount.toFixed(2)} ${toCurrency.code}`;
         } else {
             resultDiv.textContent = "Error al realizar la conversión.";
         }
